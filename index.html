@@ -241,26 +241,54 @@ function initUnbalance() {
   updateUnbalance();
 }
 function updateUnbalance() {
-  const v = ['ub-va','ub-vb','ub-vc'].map(id => {
-    const val = parseInt(document.getElementById(id).value);
-    document.getElementById(id+'-val').textContent = val+' V';
-    return val;
-  });
-  const avg = v.reduce((a,b)=>a+b)/3;
-  const vub = ((Math.max(...v)-Math.min(...v))/avg*100).toFixed(2);
-  document.getElementById('ub-vub').textContent = vub+'%';
-  const isOk = vub <= 2;
-  document.getElementById('ub-vub').className = 'metric-value ' + (isOk?'ok':'danger');
-  const st = document.getElementById('ub-status-bar');
-  st.className = 'status-bar ' + (isOk?'ok':'danger');
-  st.querySelector('span:last-child').textContent = isOk ? "Gerilim Dengesizliği Sınırlar İçerisinde" : "UYARI: Dengesizlik Sınır Dışında!";
-  ubBar.data.datasets[0].data = v; ubBar.update('none');
-  const sc = 110/230; const angles = [0, 120, 240];
-  v.forEach((val, i) => {
-    const rad = angles[i]*Math.PI/180;
-    const line = document.getElementById(`ub-v${['a','b','c'][i]}-vec`);
-    line.setAttribute('x2', 160 + val*sc*Math.cos(rad)); line.setAttribute('y2', 160 + val*sc*Math.sin(rad));
-  });
+    const vA = parseFloat(document.getElementById('vA').value);
+    const vB = parseFloat(document.getElementById('vB').value);
+    const vC = parseFloat(document.getElementById('vC').value);
+
+    // Etiketleri güncelle
+    document.getElementById('vA-val').textContent = vA + ' V';
+    document.getElementById('vB-val').textContent = vB + ' V';
+    document.getElementById('vC-val').textContent = vC + ' V';
+
+    // Dengesizlik (VUB) Hesabı
+    const avg = (vA + vB + vC) / 3;
+    const maxDev = Math.max(Math.abs(vA - avg), Math.abs(vB - avg), Math.abs(vC - avg));
+    const vub = ((maxDev / avg) * 100).toFixed(2);
+    
+    const disp = document.getElementById('vub-val');
+    disp.textContent = vub + '%';
+    
+    const isOk = vub <= 2.0;
+    disp.className = 'metric-value ' + (isOk ? 'ok' : 'danger');
+
+    // Dinamik Açı Hesaplama
+    const angA = 0;
+    const angB = 120 + (vB - 230) * 0.1;
+    const angC = 240 + (vC - 230) * 0.1;
+
+    // Açı yazılarını güncelle
+    document.getElementById('angA').textContent = `∠A: ${angA.toFixed(1)}°`;
+    document.getElementById('angB').textContent = `∠B: ${angB.toFixed(1)}°`;
+    document.getElementById('angC').textContent = `∠C: ${angC.toFixed(1)}°`;
+
+    // SVG Fazör Çizimi
+    const center = 100;
+    const scale = 0.3;
+
+    const drawLine = (id, voltage, angle) => {
+        const rad = (angle - 90) * Math.PI / 180; // -90 derece ile yukarıdan başlatıyoruz
+        const el = document.getElementById(id);
+        el.setAttribute('x2', center + voltage * scale * Math.cos(rad));
+        el.setAttribute('y2', center + voltage * scale * Math.sin(rad));
+    };
+
+    drawLine('lineA', vA, angA);
+    drawLine('lineB', vB, angB);
+    drawLine('lineC', vC, angC);
+
+    // Grafiği güncelle
+    unbalanceChart.data.datasets[0].data = [vA, vB, vC];
+    unbalanceChart.update('none');
 }
 
 // 3. DIP
